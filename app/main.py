@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.services.external_api import fetch_github_status
 from app.schemas.chat import ChatRequest, ChatResponse
+from app.services.llm_service import call_llm
 
 # 创建 app 对象，后面是后端应用本体
 app = FastAPI(
@@ -48,3 +49,9 @@ def chat_test(request: ChatRequest):
     return ChatResponse(
         reply=f"你刚才说的是:{request.message}"
     )
+
+@app.post("/chat", response_model=ChatResponse)
+def chat(request: ChatRequest):
+    reply = call_llm(request.message)
+
+    return ChatResponse(reply=reply) 

@@ -10,4 +10,12 @@ class Settings:
     test_api_key: str | None = os.getenv("TEST_API_KEY")
     proxy_url: str | None = os.getenv("PROXY_URL")
 
+    deepseek_api_key: str | None = os.getenv("DEEPSEEK_API_KEY")
+    deepseek_base_url: str = os.getenv(
+        "DEEPSEEK_BASE_URL",
+        "https://api.deepseek.com",
+    )
+    deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+
+
 settings = Settings()
