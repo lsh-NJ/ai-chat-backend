@@ -1,9 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from app.core.config import settings
 from app.services.external_api import fetch_github_status
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.llm_service import call_llm
+from app.db.database import (
+    create_conversation,
+    get_conversation,
+    init_db,
+    save_message,
+)
 
 # 创建 app 对象，后面是后端应用本体
 app = FastAPI(
@@ -11,6 +17,8 @@ app = FastAPI(
     description="一个由 FastAPI 实现的简单 AI 后端",
     version=settings.app_version,
 )
+
+init_db()
 
 # 定义首页接口，当用户get请求访问/就执行root函数
 @app.get("/")
@@ -52,6 +60,33 @@ def chat_test(request: ChatRequest):
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
+    conversation_id = request.conversation_id
+
+    if conversation_id is None:
+        conversation_id = create_conversation(
+            title=request.message[:30]
+        )
+    elif get_conversation(conversation_id) is None:
+        raise HTTPException(
+            status_code=404,
+            detail="conversation_id not found",
+        )
+
+    save_message(
+        conversation_id=conversation_id,
+        role="user",
+        content=request.message,
+    )
+
     reply = call_llm(request.message)
 
-    return ChatResponse(reply=reply) 
+    save_message(
+        conversation_id=conversation_id,
+        role="assistant",
+        content=reply,
+    )
+
+    return ChatResponse(
+        reply=reply,
+        conversation_id=conversation_id,
+    )

@@ -16,6 +16,7 @@ class Settings:
         "https://api.deepseek.com",
     )
     deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+    database_path: str = os.getenv("DATABASE_PATH", "data/app.db")
 
 
 settings = Settings()
