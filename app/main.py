@@ -49,29 +49,6 @@ def health_check():
         "message": "AI Chat Backend is runing"
     }
 
-@app.get("/config/test")
-def config_test():
-    return {
-        "app_name": settings.app_name,
-        "app_version": settings.app_version,
-        "has_test_api_key": settings.test_api_key is not None
-    }
-
-@app.get("/external_api/test")
-def external_test():
-    data = fetch_github_status()
-    return {
-        "message": "External API request success",
-        "current_user_url": data.get("current_user_url"),
-        "repository_url": data.get("repository_url"),
-    }
-
-@app.post("/chat/test", response_model=ChatResponse)
-def chat_test(request: ChatRequest):
-    return ChatResponse(
-        reply=f"你刚才说的是:{request.message}"
-    )
-
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     conversation_id = request.conversation_id
