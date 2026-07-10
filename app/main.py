@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from collections.abc import Iterator
 from fastapi.responses import StreamingResponse
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException
 
 from app.core.config import settings
-from app.services.external_api import fetch_github_status
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.llm_service import (
     LLMStreamError,
@@ -25,6 +26,12 @@ from app.schemas.conversation import (
     MessageResponse,
 )
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db()
+    yield
+
+
 # 创建 app 对象，后面是后端应用本体
 app = FastAPI(
     title="AI Chat Backend",
@@ -32,7 +39,6 @@ app = FastAPI(
     version=settings.app_version,
 )
 
-init_db()
 
 # 定义首页接口，当用户get请求访问/就执行root函数
 @app.get("/")
@@ -41,6 +47,7 @@ def root():
         "message": "Welcome to AI Chat Backend"
     }
 
+
 # /health 是用来检查服务有没有正常运行的常用接口
 @app.get("/health")
 def health_check():
@@ -48,6 +55,7 @@ def health_check():
         "status": "ok",
         "message": "AI Chat Backend is runing"
     }
+
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
@@ -86,6 +94,7 @@ def chat(request: ChatRequest):
         reply=reply,
         conversation_id=conversation_id,
     )
+
 
 # 流式对话接口
 @app.post("/chat/stream")
@@ -146,6 +155,7 @@ def chat_stream(request: ChatRequest):
         },
     )
 
+
 # 创建会话
 @app.post("/conversations", response_model=ConversationResponse)
 def create_conversation_api(request: ConversationCreateRequest):
@@ -171,6 +181,7 @@ def list_conversations_api():
         )
         for row in conversations
     ]
+
 
 # 查看某个会话的历史记录
 @app.get(
