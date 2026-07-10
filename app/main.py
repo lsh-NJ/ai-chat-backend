@@ -8,7 +8,15 @@ from app.db.database import (
     create_conversation,
     get_conversation,
     init_db,
+    list_conversations,
+    list_messages,
+    list_recent_messages_for_llm,
     save_message,
+)
+from app.schemas.conversation import (
+    ConversationCreateRequest,
+    ConversationResponse,
+    MessageResponse,
 )
 
 # 创建 app 对象，后面是后端应用本体
@@ -78,7 +86,12 @@ def chat(request: ChatRequest):
         content=request.message,
     )
 
-    reply = call_llm(request.message)
+    history_messages = list_recent_messages_for_llm(
+        conversation_id=conversation_id,
+        limit=20,
+    )
+
+    reply = call_llm(history_messages)
 
     save_message(
         conversation_id=conversation_id,
@@ -90,3 +103,56 @@ def chat(request: ChatRequest):
         reply=reply,
         conversation_id=conversation_id,
     )
+
+# 创建会话
+@app.post("/conversations", response_model=ConversationResponse)
+def create_conversation_api(request: ConversationCreateRequest):
+    conversation_id = create_conversation(title=request.title)
+    conversation = get_conversation(conversation_id)
+
+    return ConversationResponse(
+        id=conversation["id"],
+        title=conversation["title"],
+        created_at=conversation["created_at"],
+    )
+
+# 查看会话列表
+@app.get("/conversations", response_model=list[ConversationResponse])
+def list_conversations_api():
+    conversations = list_conversations()
+
+    return [
+        ConversationResponse(
+            id=row["id"],
+            title=row["title"],
+            created_at=row["created_at"],
+        )
+        for row in conversations
+    ]
+
+# 查看某个会话的历史记录
+@app.get(
+    "/conversations/{conversation_id}/messages",
+    response_model=list[MessageResponse],
+)
+def list_messages_api(conversation_id: int):
+    conversation = get_conversation(conversation_id)
+
+    if conversation is None:
+        raise HTTPException(
+            status_code=404,
+            detail="conversation_id not found",
+        )
+
+    messages = list_messages(conversation_id)
+
+    return [
+        MessageResponse(
+            id=row["id"],
+            conversation_id=row["conversation_id"],
+            role=row["role"],
+            content=row["content"],
+            created_at=row["created_at"],
+        )
+        for row in messages
+    ]

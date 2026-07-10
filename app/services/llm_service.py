@@ -1,19 +1,23 @@
 import httpx
 from fastapi import HTTPException
+
 from app.core.config import settings
 
-def call_llm(message: str) -> str:
-    if not settings.test_api_key:
+
+def call_llm(messages: list[dict[str, str]]) -> str:
+    if not settings.deepseek_api_key:
         raise HTTPException(
             status_code=500,
             detail="DeepSeek API key is not configured",
         )
-    
-    url = f"{settings.deepseek_base_url}/chat/completions"
+
+    base_url = settings.deepseek_base_url.rstrip("/")
+    url = f"{base_url}/chat/completions"
 
     headers = {
         "Authorization": f"Bearer {settings.deepseek_api_key}",
         "Content-Type": "application/json",
+        "Accept": "application/json",
     }
 
     payload = {
@@ -23,15 +27,13 @@ def call_llm(message: str) -> str:
                 "role": "system",
                 "content": "你是一个简洁、友好、可靠的 AI 助手。",
             },
-            {
-                "role": "user",
-                "content": message,
-            },
+            *messages,
         ],
         "temperature": 0.7,
+        "thinking": {
+            "type": "disabled",
+        },
     }
-
-    
 
     try:
         with httpx.Client(
@@ -42,7 +44,7 @@ def call_llm(message: str) -> str:
                 headers=headers,
                 json=payload,
             )
-            
+
         response.raise_for_status()
         data = response.json()
 
@@ -62,6 +64,7 @@ def call_llm(message: str) -> str:
                 "status_code": e.response.status_code,
                 "response_text": e.response.text[:500],
                 "url": str(e.request.url),
+                "method": e.request.method,
                 "model": settings.deepseek_model,
             },
         ) from e
