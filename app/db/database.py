@@ -4,9 +4,10 @@ from pathlib import Path
 
 from app.core.config import settings
 
-
+# 返回标准的格式化时间
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
 
 # 返回数据库连接
 def get_connection() -> sqlite3.Connection:
@@ -90,7 +91,8 @@ def save_message(
         conn.commit()
 
         return int(cursor.lastrowid)
-    
+
+
 # 获得会话信息
 def list_conversations() -> list[sqlite3.Row]:
     with get_connection() as conn:
@@ -103,6 +105,7 @@ def list_conversations() -> list[sqlite3.Row]:
         )
 
         return cursor.fetchall()
+
 
 # 获得相应会话的所有信息
 def list_messages(conversation_id: int) -> list[sqlite3.Row]:
